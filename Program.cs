@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cake.CMake;
@@ -74,9 +75,13 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
             BinaryPath = buildPath
         });
 
-        var libName = context.IsRunningOnWindows()
-            ? "SDL3.dll"
-            : "libSDL3.dylib";
+        var libName = context.Environment.Platform.Family switch
+        {
+            PlatformFamily.Windows => "SDL3.dll",
+            PlatformFamily.OSX => "libSDL3.dylib",
+            PlatformFamily.Linux => "libSDL3.so",
+            var p => throw new PlatformNotSupportedException($"Platform {p} is not supported")
+        };
         
         context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(libName));
     }
