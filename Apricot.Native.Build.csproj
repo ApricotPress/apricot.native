@@ -7,15 +7,19 @@
         <RootNamespace>Apricot.Native.Build</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Cake.CMake" Version="1.4.0" />
+        <PackageReference Include="Cake.CMake" Version="1.4.0"/>
         <PackageReference Include="Cake.Frosting" Version="5.0.0"/>
-        <PackageReference Include="Cake.Git" Version="5.0.1" />
+        <PackageReference Include="Cake.Git" Version="5.0.1"/>
     </ItemGroup>
     <ItemGroup>
-        <None Remove="Sources\**\*" />
-        <Content Remove="Sources\**\*" />
-    </ItemGroup>
-    <ItemGroup>
-      <Compile Remove="Sources\SDL\src\video\directx\gen_xbox_cmacros.cs" />
+        <None Remove="Sources\**\*"/>
+        <Content Remove="Sources\**\*"/>
+        <Compile Remove="Sources\**\*"/>
+        
+        <!-- Why cannot I use pattern here - I don't know -->
+        <EmbeddedResource Remove="Sources\SDL_shadercross\external\DirectXShaderCompiler\tools\clang\tools\dotnetc\FindDialog.resx"/>
+        <EmbeddedResource Remove="Sources\SDL_shadercross\external\DirectXShaderCompiler\tools\clang\tools\dotnetc\GoToDialog.resx"/>
+        <EmbeddedResource Remove="Sources\SDL_shadercross\external\DirectXShaderCompiler\tools\clang\tools\dotnetc\OptEditorForm.resx"/>
+        <EmbeddedResource Remove="Sources\SDL_shadercross\external\DirectXShaderCompiler\tools\clang\tools\dotnetc\EditorForm.resx"/>
     </ItemGroup>
 </Project>
