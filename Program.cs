@@ -153,8 +153,11 @@ public sealed class BuildSpirVCross : FrostingTask<BuildContext>
             BinaryPath = buildPath
         });
 
-        var libraryName = Utils.PlatformLibName(context.Environment.Platform.Family, "spirv-cross-c-shared");
-        var binaryName = Utils.BinaryName(context.Environment.Platform.Family, "spirv-cross");
+        var platform = context.Environment.Platform.Family;
+        var libraryName = platform == PlatformFamily.Windows
+            ? "libspirv-cross-c-shared.dll" // spirv cross on windows adds lib in the beginning for some reason...
+            : Utils.PlatformLibName(platform, "spirv-cross-c-shared");
+        var binaryName = Utils.BinaryName(platform, "spirv-cross");
         context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(libraryName));
         context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(binaryName));
     }
