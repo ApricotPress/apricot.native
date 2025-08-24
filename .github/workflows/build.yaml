@@ -2,7 +2,9 @@ name: Build
 
 on:
   push:
-  pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -11,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14, windows-2022]
+        os: [ ubuntu-24.04, macos-14, windows-2022 ]
 
     steps:
       - name: Checkout
@@ -59,4 +61,55 @@ jobs:
       - name: Cake run
         run: |
           dotnet --info
-          dotnet run
+          dotnet run --
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          path: Artifacts/**
+          if-no-files-found: error
+          retention-days: 7
+  
+  merge_artifacts:
+    name: Merge and push artifacts
+    runs-on: ubuntu-24.04
+    needs: build
+    if: github.actor != 'github-actions[bot]'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _all_artifacts
+
+      - name: Merge into repo Artifacts/
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf Artifacts
+          mkdir -p Artifacts
+          shopt -s nullglob dotglob
+          for d in _all_artifacts/*; do
+            # Each downloaded artifact is a directory named after the matrix.os
+            name="$(basename "$d")"
+            mkdir -p "Artifacts/$name"
+            cp -R "$d"/* "Artifacts/$name" || true
+          done
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add Artifacts
+          if git diff --cached --quiet; then
+            echo "No artifact changes to commit."
+          else
+            git commit -m "CI: merge artifacts from matrix [skip ci]"
+            git push
+          fi

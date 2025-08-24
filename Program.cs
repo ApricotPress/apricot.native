@@ -15,11 +15,13 @@ return new CakeHost()
 
 public class BuildContext(ICakeContext context) : FrostingContext(context)
 {
-    public string Platform { get; set; } = context.Environment.Platform.Family.ToString();
+    public string Platform { get; set; } = context.Argument("Platform", context.Environment.Platform.Family.ToString());
 
     public string CmakeGenerator { get; set; } = context.Argument("CmakeGenerator", "Ninja");
 
     public List<string> SdlExtraFlags { get; set; } = [];
+
+    public List<FilePath> ProducedArtifacts { get; set; } = [];
 }
 
 [TaskName("Prepare SDL")]
@@ -41,7 +43,7 @@ public sealed class PrepareSdlBuild : FrostingTask<BuildContext>
 [IsDependentOn(typeof(PrepareSdlBuild))]
 public sealed class BuildSdl : FrostingTask<BuildContext>
 {
-    public const string SdlPath = "Sources/SDL";
+    private const string SdlPath = "Sources/SDL";
 
     public override void Run(BuildContext context)
     {
@@ -71,9 +73,29 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
         {
             BinaryPath = buildPath
         });
+
+        var libName = context.IsRunningOnWindows()
+            ? "SDL3.dll"
+            : "libSDL3.dylib";
+        
+        context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(libName));
+    }
+}
+
+[TaskName("Copy artifacts")]
+public sealed class CopyArtifacts : FrostingTask<BuildContext>
+{   
+    public override void Run(BuildContext context)
+    {
+        var targetDirPath = new DirectoryPath($"Artifacts/{context.Platform}");
+
+        context.EnsureDirectoryExists(targetDirPath);
+
+        context.CopyFiles(context.ProducedArtifacts, targetDirPath);
     }
 }
 
 [TaskName("Default")]
 [IsDependentOn(typeof(BuildSdl))]
+[IsDependentOn(typeof(CopyArtifacts))]
 public class DefaultTask : FrostingTask { }
