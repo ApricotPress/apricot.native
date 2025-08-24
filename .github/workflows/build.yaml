@@ -70,7 +70,7 @@ jobs:
           dotnet --info
           dotnet run
           
-      - name: Save Primes
+      - name: Cache builds
         id: cache-builds-save
         uses: actions/cache/save@v4
         with:
