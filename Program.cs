@@ -23,6 +23,8 @@ public class BuildContext(ICakeContext context) : FrostingContext(context)
     public List<string> SdlExtraFlags { get; set; } = [];
 
     public List<FilePath> ProducedArtifacts { get; set; } = [];
+
+    public DirectoryPath InstallPrefixPath => new DirectoryPath($"InstallPrefix/{Platform}").MakeAbsolute(Environment);
 }
 
 [TaskName("Prepare SDL")]
@@ -44,9 +46,7 @@ public sealed class PrepareSdlBuild : FrostingTask<BuildContext>
 [IsDependentOn(typeof(PrepareSdlBuild))]
 public sealed class BuildSdl : FrostingTask<BuildContext>
 {
-    public const string SdlPath = "Sources/SDL";
-
-    public static DirectoryPath GetBuildPath(BuildContext ctx) => new($"Builds/{ctx.Platform}/SDL");
+    private const string SdlPath = "Sources/SDL";
 
     public override void Run(BuildContext context)
     {
@@ -54,7 +54,7 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
         var commit = context.GitLog(SdlPath, 1).First();
         context.Log.Information("SDL repository is at {0} - {1}", commit.Sha, commit.MessageShort);
 
-        var buildPath = GetBuildPath(context);
+        var buildPath = new DirectoryPath($"Builds/{context.Platform}/SDL");
 
         context.EnsureDirectoryExists(buildPath);
 
@@ -68,7 +68,8 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DSDL_SHARED=ON",
                 "-DSDL_TESTS=OFF",
-                "-DSDL_EXAMPLES=OFF"
+                "-DSDL_EXAMPLES=OFF",
+                $"-DCMAKE_INSTALL_PREFIX={context.InstallPrefixPath}"
             ]).ToArray()
         });
 
@@ -76,6 +77,17 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
         {
             BinaryPath = buildPath
         });
+
+        context.StartProcess(
+            context.Tools.Resolve("cmake"),
+            new ProcessSettings
+            {
+                Arguments = ProcessArgumentBuilder.FromStrings([
+                    "--install", buildPath.ToString(),
+                    "--prefix", context.InstallPrefixPath.ToString()
+                ])
+            }
+        );
 
         var libName = Utils.PlatformLibName(context.Environment.Platform.Family, "SDL3");
 
@@ -87,7 +99,7 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
 [IsDependentOn(typeof(BuildSdl))]
 public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
 {
-    public const string ShadercrossPath = "Sources/SDL_shadercross/";
+    private const string ShadercrossPath = "Sources/SDL_shadercross/";
 
     public override void Run(BuildContext context)
     {
@@ -110,7 +122,7 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
                 "-DSDLSHADERCROSS_SHARED=ON",
                 "-DSDLSHADERCROSS_STATIC=OFF",
                 "-DSDLSHADERCROSS_CLI=ON",
-                $"-DSDL3_DIR={BuildSdl.GetBuildPath(context)}"
+                $"-DCMAKE_INSTALL_PREFIX={context.InstallPrefixPath}"
             ]
         });
 
