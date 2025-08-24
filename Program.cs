@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cake.CMake;
@@ -48,7 +47,7 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
     {
         context.Log.Information("Preparing to build SDL for current OS");
         var commit = context.GitLog(SdlPath, 1).First();
-        context.Log.Information("SDL repository is at {0} - {1}", commit.Sha, commit.Message);
+        context.Log.Information("SDL repository is at {0} - {1}", commit.Sha, commit.MessageShort);
 
         var buildPath = new DirectoryPath($"Builds/{context.Platform}/SDL");
 
