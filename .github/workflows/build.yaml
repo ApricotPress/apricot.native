@@ -108,10 +108,7 @@ jobs:
           mkdir -p Artifacts
           shopt -s nullglob dotglob
           for d in _all_artifacts/*; do
-            # Each downloaded artifact is a directory named after the matrix.os
-            name="$(basename "$d")"
-            mkdir -p "Artifacts/$name"
-            cp -R "$d"/* "Artifacts/$name" || true
+            cp -R "$d"/* Artifacts/ || true
           done
 
       - name: Commit and push
@@ -124,6 +121,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No artifact changes to commit."
           else
-            git commit -m "CI: merge artifacts from matrix [skip ci]"
+            git commit -m "ci: upload built artifacts"
             git push
           fi
