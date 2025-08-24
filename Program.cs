@@ -78,16 +78,11 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
             BinaryPath = buildPath
         });
 
-        context.StartProcess(
-            context.Tools.Resolve("cmake"),
-            new ProcessSettings
-            {
-                Arguments = ProcessArgumentBuilder.FromStrings([
-                    "--install", buildPath.ToString(),
-                    "--prefix", context.InstallPrefixPath.ToString()
-                ])
-            }
-        );
+        context.CMakeBuild(new CMakeBuildSettings
+        {
+            BinaryPath = buildPath,
+            Targets = ["install"]
+        });
 
         var libName = Utils.PlatformLibName(context.Environment.Platform.Family, "SDL3");
 
