@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Apricot.Native.Build;
@@ -19,6 +20,8 @@ public class BuildContext(ICakeContext context) : FrostingContext(context)
     public string Platform { get; set; } = context.Argument("Platform", context.Environment.Platform.Family.ToString());
 
     public string CmakeGenerator { get; set; } = context.Argument("CmakeGenerator", "Ninja");
+
+    public bool UseVendoredShadercrossDeps { get; set; } = context.IsRunningOnMacOs();
 
     public List<string> SdlExtraFlags { get; set; } = [];
 
@@ -86,8 +89,81 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
     }
 }
 
+[TaskName("Download shadercross DirectXShaderCompiler binaries")]
+public sealed class DownloadDirectXShaderCompiler : FrostingTask<BuildContext>
+{
+    public override void Run(BuildContext context)
+    {
+        if (context.UseVendoredShadercrossDeps)
+        {
+            context.Log.Information("Skip direct-x shader compiler download");
+            return;
+        }
+
+        var cmakePath = context.Tools.Resolve(["cmake", "cmake.exe"]);
+        var workingDir = new DirectoryPath("Sources/SDL_shadercross/");
+
+        context.StartProcess(
+            cmakePath,
+            new ProcessSettings
+            {
+                WorkingDirectory = workingDir,
+                Arguments = ProcessArgumentBuilder.FromStrings([
+                    "-P", "build-scripts/download-prebuilt-DirectXShaderCompiler.cmake"
+                ])
+            }
+        );
+
+        Environment.SetEnvironmentVariable(
+            "DirectXShaderCompiler_ROOT",
+            workingDir.Combine("external/DirectXShaderCompiler-binaries").MakeAbsolute(context.Environment).ToString()
+        );
+    }
+}
+
+[TaskName("Build SpirV-cross")]
+public sealed class BuildSpirVCross : FrostingTask<BuildContext>
+{
+    private const string SpirVCrossPath = "Sources/SDL_shadercross/external/SPIRV-Cross";
+
+    public static DirectoryPath GetBuildPath(BuildContext context) =>
+        new DirectoryPath($"Builds/{context.Platform}/spirv-cross-c-shared/").MakeAbsolute(context.Environment);
+
+    public override void Run(BuildContext context)
+    {
+        var buildPath = GetBuildPath(context);
+
+        context.EnsureDirectoryExists(buildPath);
+
+
+        context.CMake(new CMakeSettings
+        {
+            SourcePath = SpirVCrossPath,
+            OutputPath = buildPath,
+            Generator = context.CmakeGenerator,
+            Options =
+            [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DSPIRV_CROSS_SHARED=ON"
+            ]
+        });
+
+        context.CMakeBuild(new CMakeBuildSettings
+        {
+            BinaryPath = buildPath
+        });
+
+        var libraryName = Utils.PlatformLibName(context.Environment.Platform.Family, "spirv-cross-c-shared");
+        var binaryName = Utils.BinaryName(context.Environment.Platform.Family, "spirv-cross");
+        context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(libraryName));
+        context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(binaryName));
+    }
+}
+
 [TaskName("Build SDL_shadercross")]
 [IsDependentOn(typeof(BuildSdl))]
+[IsDependentOn(typeof(BuildSpirVCross))]
+[IsDependentOn(typeof(DownloadDirectXShaderCompiler))]
 public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
 {
     private const string ShadercrossPath = "Sources/SDL_shadercross/";
@@ -100,7 +176,9 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
 
         var buildPath = new DirectoryPath($"Builds/{context.Platform}/SDL_shadercross");
 
-        string vendoredArg = context.IsRunningOnMacOs()
+        context.EnsureDirectoryExists(buildPath);
+
+        var useVendoredArg = context.UseVendoredShadercrossDeps
             ? "-DSDLSHADERCROSS_VENDORED=ON"
             : "-DSDLSHADERCROSS_VENDORED=OFF";
 
@@ -116,8 +194,9 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
                 "-DSDLSHADERCROSS_SHARED=ON",
                 "-DSDLSHADERCROSS_STATIC=OFF",
                 "-DSDLSHADERCROSS_CLI=ON",
-                vendoredArg,
-                $"-DSDL3_DIR={BuildSdl.GetBuildPath(context)}"
+                useVendoredArg,
+                $"-DSDL3_DIR={BuildSdl.GetBuildPath(context)}",
+                $"-Dspirv_cross_c_shared_DIR={BuildSpirVCross.GetBuildPath(context)}"
             ]
         });
 
@@ -131,7 +210,7 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
             buildPath.CombineWithFilePath(libName)
         );
 
-        var binaryName = context.IsRunningOnWindows() ? "shadercross.exe" : "shadercross";
+        var binaryName = Utils.BinaryName(context.Environment.Platform.Family, "shadercross");
         context.ProducedArtifacts.Add(
             buildPath.CombineWithFilePath(binaryName)
         );

@@ -13,4 +13,12 @@ public static class Utils
             PlatformFamily.Linux => $"lib{lib}.so",
             var p => throw new PlatformNotSupportedException($"Platform {p} is not supported")
         };
+    
+    public static string BinaryName(PlatformFamily platformFamily, string binary) =>
+        platformFamily switch
+        {
+            PlatformFamily.Windows => $"{binary}.exe",
+            PlatformFamily.OSX or PlatformFamily.Linux => binary,
+            var p => throw new PlatformNotSupportedException($"Platform {p} is not supported")
+        };
 }
