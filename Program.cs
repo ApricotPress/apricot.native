@@ -48,13 +48,16 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
 {
     private const string SdlPath = "Sources/SDL";
 
+    public static DirectoryPath GetBuildPath(BuildContext context) =>
+        new DirectoryPath($"Builds/{context.Platform}/SDL/").MakeAbsolute(context.Environment);
+
     public override void Run(BuildContext context)
     {
         context.Log.Information("Preparing to build SDL for current OS");
         var commit = context.GitLog(SdlPath, 1).First();
         context.Log.Information("SDL repository is at {0} - {1}", commit.Sha, commit.MessageShort);
 
-        var buildPath = new DirectoryPath($"Builds/{context.Platform}/SDL");
+        var buildPath = GetBuildPath(context);
 
         context.EnsureDirectoryExists(buildPath);
 
@@ -68,20 +71,13 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DSDL_SHARED=ON",
                 "-DSDL_TESTS=OFF",
-                "-DSDL_EXAMPLES=OFF",
-                $"-DCMAKE_INSTALL_PREFIX={context.InstallPrefixPath}"
+                "-DSDL_EXAMPLES=OFF"
             ]).ToArray()
         });
 
         context.CMakeBuild(new CMakeBuildSettings
         {
             BinaryPath = buildPath
-        });
-
-        context.CMakeBuild(new CMakeBuildSettings
-        {
-            BinaryPath = buildPath,
-            Targets = ["install"]
         });
 
         var libName = Utils.PlatformLibName(context.Environment.Platform.Family, "SDL3");
@@ -104,6 +100,10 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
 
         var buildPath = new DirectoryPath($"Builds/{context.Platform}/SDL_shadercross");
 
+        string vendoredArg = context.IsRunningOnMacOs()
+            ? "-DSDLSHADERCROSS_VENDORED=ON"
+            : "-DSDLSHADERCROSS_VENDORED=OFF";
+
         context.CMake(new CMakeSettings
         {
             OutputPath = buildPath,
@@ -113,11 +113,11 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
             [
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DSDLSHADERCROSS_DXC=ON",
-                "-DSDLSHADERCROSS_VENDORED=ON",
                 "-DSDLSHADERCROSS_SHARED=ON",
                 "-DSDLSHADERCROSS_STATIC=OFF",
                 "-DSDLSHADERCROSS_CLI=ON",
-                $"-DCMAKE_INSTALL_PREFIX={context.InstallPrefixPath}"
+                vendoredArg,
+                $"-DSDL3_DIR={BuildSdl.GetBuildPath(context)}"
             ]
         });
 
