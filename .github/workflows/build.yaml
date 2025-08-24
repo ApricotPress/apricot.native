@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           brew update
-          brew install cmake ninja pkg-config || true
+          brew install cmake || true
 
       - name: Windows deps
         if: startsWith(matrix.os, 'windows')
@@ -58,10 +58,24 @@ jobs:
         shell: bash
         run: dotnet tool restore
 
+      - name: Restore cached Builds
+        id: cache-builds-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: Builds
+          key: ${{ matrix.os }}-builds
+
       - name: Cake run
         run: |
           dotnet --info
-          dotnet run --
+          dotnet run
+          
+      - name: Save Primes
+        id: cache-builds-save
+        uses: actions/cache/save@v4
+        with:
+          path: Builds
+          key: ${{ steps.cache-builds-restore.outputs.cache-primary-key }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
