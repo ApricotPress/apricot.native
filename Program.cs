@@ -26,8 +26,6 @@ public class BuildContext(ICakeContext context) : FrostingContext(context)
     public List<string> SdlExtraFlags { get; set; } = [];
 
     public List<FilePath> ProducedArtifacts { get; set; } = [];
-
-    public DirectoryPath InstallPrefixPath => new DirectoryPath($"InstallPrefix/{Platform}").MakeAbsolute(Environment);
 }
 
 [TaskName("Prepare SDL")]
@@ -114,10 +112,19 @@ public sealed class DownloadDirectXShaderCompiler : FrostingTask<BuildContext>
             }
         );
 
+        var binariesPath = workingDir
+            .Combine("external/DirectXShaderCompiler-binaries")
+            .MakeAbsolute(context.Environment);
+
         Environment.SetEnvironmentVariable(
             "DirectXShaderCompiler_ROOT",
-            workingDir.Combine("external/DirectXShaderCompiler-binaries").MakeAbsolute(context.Environment).ToString()
+            binariesPath.ToString()
         );
+
+        if (context.Environment.Platform.Family == PlatformFamily.Linux)
+        {
+            context.ProducedArtifacts.Add(binariesPath.CombineWithFilePath($"linux/lib/libdxcompiler.so"));
+        }
     }
 }
 
@@ -142,10 +149,11 @@ public sealed class BuildSpirVCross : FrostingTask<BuildContext>
             OutputPath = buildPath,
             Generator = context.CmakeGenerator,
             Options =
-            [
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DSPIRV_CROSS_SHARED=ON"
-            ]
+                GetPlatformSpecificOptions(context.Environment.Platform.Family).Concat(
+                [
+                    "-DCMAKE_BUILD_TYPE=Release",
+                    "-DSPIRV_CROSS_SHARED=ON"
+                ]).ToArray()
         });
 
         context.CMakeBuild(new CMakeBuildSettings
@@ -161,6 +169,31 @@ public sealed class BuildSpirVCross : FrostingTask<BuildContext>
         context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(libraryName));
         context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(binaryName));
     }
+
+    public string[] GetPlatformSpecificOptions(PlatformFamily family) => family switch
+    {
+        PlatformFamily.OSX =>
+        [
+            "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64",
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13",
+            "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+            "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+            "-DCMAKE_INSTALL_RPATH=@loader_path",
+            "-DCMAKE_MACOSX_RPATH=ON"
+        ],
+        PlatformFamily.Windows =>
+        [
+            "-DCMAKE_SHARED_LIBRARY_PREFIX="
+        ],
+        PlatformFamily.Linux =>
+        [
+            "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+            "-DCMAKE_SKIP_BUILD_RPATH=OFF",
+            "-DCMAKE_INSTALL_RPATH=$ORIGIN",
+            "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
+        ],
+        _ => throw new PlatformNotSupportedException()
+    };
 }
 
 [TaskName("Build SDL_shadercross")]
@@ -181,26 +214,22 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
 
         context.EnsureDirectoryExists(buildPath);
 
-        var useVendoredArg = context.UseVendoredShadercrossDeps
-            ? "-DSDLSHADERCROSS_VENDORED=ON"
-            : "-DSDLSHADERCROSS_VENDORED=OFF";
-
         context.CMake(new CMakeSettings
         {
             OutputPath = buildPath,
             SourcePath = ShadercrossPath,
             Generator = context.CmakeGenerator,
             Options =
-            [
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DSDLSHADERCROSS_DXC=ON",
-                "-DSDLSHADERCROSS_SHARED=ON",
-                "-DSDLSHADERCROSS_STATIC=OFF",
-                "-DSDLSHADERCROSS_CLI=ON",
-                useVendoredArg,
-                $"-DSDL3_DIR={BuildSdl.GetBuildPath(context)}",
-                $"-Dspirv_cross_c_shared_DIR={BuildSpirVCross.GetBuildPath(context)}"
-            ]
+                GetPlatformSpecificOptions(context.Environment.Platform.Family).Concat(
+                [
+                    "-DCMAKE_BUILD_TYPE=Release",
+                    "-DSDLSHADERCROSS_DXC=ON",
+                    "-DSDLSHADERCROSS_SHARED=ON",
+                    "-DSDLSHADERCROSS_STATIC=OFF",
+                    "-DSDLSHADERCROSS_CLI=ON",
+                    $"-DSDL3_DIR={BuildSdl.GetBuildPath(context)}",
+                    $"-Dspirv_cross_c_shared_DIR={BuildSpirVCross.GetBuildPath(context)}"
+                ]).ToArray()
         });
 
         context.CMakeBuild(new CMakeBuildSettings
@@ -217,7 +246,42 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
         context.ProducedArtifacts.Add(
             buildPath.CombineWithFilePath(binaryName)
         );
+
+        if (context.UseVendoredShadercrossDeps)
+        {
+            var dxcompilerLibName = Utils.PlatformLibName(context.Environment.Platform.Family, "dxcompiler");
+            context.ProducedArtifacts.Add(
+                buildPath.CombineWithFilePath($"external/DirectXShaderCompiler/lib/{dxcompilerLibName}")
+            );
+        }
     }
+
+    public string[] GetPlatformSpecificOptions(PlatformFamily family) => family switch
+    {
+        PlatformFamily.OSX =>
+        [
+            "-DSDLSHADERCROSS_VENDORED=ON",
+            "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64",
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13",
+            "-DCMAKE_INSTALL_NAME_DIR=@rpath",
+            "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+            "-DCMAKE_INSTALL_RPATH=@loader_path",
+            "-DCMAKE_MACOSX_RPATH=ON"
+        ],
+        PlatformFamily.Windows =>
+        [
+            "-DSDLSHADERCROSS_VENDORED=OFF",
+        ],
+        PlatformFamily.Linux =>
+        [
+            "-DSDLSHADERCROSS_VENDORED=OFF",
+            "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+            "-DCMAKE_SKIP_BUILD_RPATH=OFF",
+            "-DCMAKE_INSTALL_RPATH=$ORIGIN",
+            "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
+        ],
+        _ => throw new PlatformNotSupportedException()
+    };
 }
 
 
@@ -228,9 +292,32 @@ public sealed class CopyArtifacts : FrostingTask<BuildContext>
     {
         var targetDirPath = new DirectoryPath($"Artifacts/{context.Platform}");
 
+        context.EnsureDirectoryDoesNotExist(targetDirPath);
         context.EnsureDirectoryExists(targetDirPath);
 
-        context.CopyFiles(context.ProducedArtifacts, targetDirPath);
+        foreach (var artifactPath in context.ProducedArtifacts)
+        {
+            context.Log.Information($"Copying {artifactPath} to artifacts");
+            CopyArtifact(context, artifactPath, targetDirPath);
+        }
+    }
+
+    private FilePath CopyArtifact(BuildContext context, FilePath artifactPath, DirectoryPath targetDirPath)
+    {
+        var resultPath = targetDirPath.CombineWithFilePath(artifactPath.GetFilename());
+
+        if (Utils.TryGetSymLink(artifactPath, out FilePath original))
+        {
+            var copied = CopyArtifact(context, original, targetDirPath);
+
+            System.IO.File.CreateSymbolicLink(resultPath.ToString(), copied.ToString());
+        }
+        else
+        {
+            context.CopyFileToDirectory(artifactPath, targetDirPath);
+        }
+
+        return artifactPath.GetFilename();
     }
 }
 
