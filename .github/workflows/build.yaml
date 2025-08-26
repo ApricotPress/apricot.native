@@ -77,11 +77,14 @@ jobs:
           path: Builds
           key: ${{ steps.cache-builds-restore.outputs.cache-primary-key }}
 
+      - name: Pack artifacts 
+        run: tar -czf artifacts-${{ matrix.os }}.tar.gz -C Artifacts .
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}
-          path: Artifacts/**
+          path: artifacts-${{ matrix.os }}.tar.gz
           if-no-files-found: error
           retention-days: 7
   
@@ -101,14 +104,11 @@ jobs:
           path: _all_artifacts
 
       - name: Merge into repo Artifacts/
-        shell: bash
         run: |
-          set -euo pipefail
           rm -rf Artifacts
           mkdir -p Artifacts
-          shopt -s nullglob dotglob
-          for d in _all_artifacts/*; do
-            cp -R "$d"/* Artifacts/ || true
+          for f in _all_artifacts/*/*.tar.gz; do
+            tar -xzf "$f" -C Artifacts
           done
 
       - name: Commit and push
