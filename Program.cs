@@ -15,6 +15,8 @@ return new CakeHost()
     .UseContext<BuildContext>()
     .Run(args);
 
+public record struct ArtifactInfo(FilePath Path, DirectoryPath TargetPath);
+
 public class BuildContext(ICakeContext context) : FrostingContext(context)
 {
     public string Platform { get; set; } = context.Argument("Platform", context.Environment.Platform.Family.ToString());
@@ -25,7 +27,10 @@ public class BuildContext(ICakeContext context) : FrostingContext(context)
 
     public List<string> SdlExtraFlags { get; set; } = [];
 
-    public List<FilePath> ProducedArtifacts { get; set; } = [];
+    public List<ArtifactInfo> ProducedArtifacts { get; set; } = [];
+
+    public void AddArtifact(FilePath path, DirectoryPath target) =>
+        ProducedArtifacts.Add(new ArtifactInfo(path, target));
 }
 
 [TaskName("Prepare SDL")]
@@ -83,7 +88,7 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
 
         var libName = Utils.PlatformLibName(context.Environment.Platform.Family, "SDL3");
 
-        context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(libName));
+        context.AddArtifact(buildPath.CombineWithFilePath(libName), "SDL");
     }
 }
 
@@ -123,7 +128,7 @@ public sealed class DownloadDirectXShaderCompiler : FrostingTask<BuildContext>
 
         if (context.Environment.Platform.Family == PlatformFamily.Linux)
         {
-            context.ProducedArtifacts.Add(binariesPath.CombineWithFilePath($"linux/lib/libdxcompiler.so"));
+            context.AddArtifact(binariesPath.CombineWithFilePath($"linux/lib/libdxcompiler.so"), "SDL_shadercross");
         }
     }
 }
@@ -166,8 +171,8 @@ public sealed class BuildSpirVCross : FrostingTask<BuildContext>
             ? "libspirv-cross-c-shared.dll" // spirv cross on windows adds lib in the beginning for some reason...
             : Utils.PlatformLibName(platform, "spirv-cross-c-shared");
         var binaryName = Utils.BinaryName(platform, "spirv-cross");
-        context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(libraryName));
-        context.ProducedArtifacts.Add(buildPath.CombineWithFilePath(binaryName));
+        context.AddArtifact(buildPath.CombineWithFilePath(libraryName), "SDL_shadercross");
+        context.AddArtifact(buildPath.CombineWithFilePath(binaryName), "SDL_shadercross");
     }
 
     public string[] GetPlatformSpecificOptions(PlatformFamily family) => family switch
@@ -238,20 +243,17 @@ public sealed class BuildSdlShadercross : FrostingTask<BuildContext>
         });
 
         var libName = Utils.PlatformLibName(context.Environment.Platform.Family, "SDL3_shadercross");
-        context.ProducedArtifacts.Add(
-            buildPath.CombineWithFilePath(libName)
-        );
+        context.AddArtifact(buildPath.CombineWithFilePath(libName), "SDL_shadercross");
 
         var binaryName = Utils.BinaryName(context.Environment.Platform.Family, "shadercross");
-        context.ProducedArtifacts.Add(
-            buildPath.CombineWithFilePath(binaryName)
-        );
+        context.AddArtifact(buildPath.CombineWithFilePath(binaryName), "SDL_shadercross");
 
         if (context.UseVendoredShadercrossDeps)
         {
             var dxcompilerLibName = Utils.PlatformLibName(context.Environment.Platform.Family, "dxcompiler");
-            context.ProducedArtifacts.Add(
-                buildPath.CombineWithFilePath($"external/DirectXShaderCompiler/lib/{dxcompilerLibName}")
+            context.AddArtifact(
+                buildPath.CombineWithFilePath($"external/DirectXShaderCompiler/lib/{dxcompilerLibName}"),
+                "SDL_shadercross"
             );
         }
     }
@@ -295,15 +297,17 @@ public sealed class CopyArtifacts : FrostingTask<BuildContext>
         context.EnsureDirectoryDoesNotExist(targetDirPath);
         context.EnsureDirectoryExists(targetDirPath);
 
-        foreach (var artifactPath in context.ProducedArtifacts)
+        foreach (var artifact in context.ProducedArtifacts)
         {
-            context.Log.Information($"Copying {artifactPath} to artifacts");
-            CopyArtifact(context, artifactPath, targetDirPath);
+            context.Log.Information($"Copying {artifact} to artifacts");
+            CopyArtifact(context, artifact.Path, targetDirPath.Combine(artifact.TargetPath));
         }
     }
 
     private FilePath CopyArtifact(BuildContext context, FilePath artifactPath, DirectoryPath targetDirPath)
     {
+        context.EnsureDirectoryExists(targetDirPath);
+
         var resultPath = targetDirPath.CombineWithFilePath(artifactPath.GetFilename());
 
         if (Utils.TryGetSymLink(artifactPath, out FilePath original))
