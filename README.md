@@ -2,5 +2,4 @@ This repository holds references to all native dependencies required by Apricot 
 build all deps for all officially supported platforms automatically on push
 
 # TODO
-- Currently binaries have broken libs linking
 - No web builds yet

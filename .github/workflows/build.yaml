@@ -26,7 +26,7 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
-      - name: Linux deps
+      - name: Linux setup
         if: startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
@@ -39,13 +39,17 @@ jobs:
             libudev-dev libpulse-dev libpipewire-0.3-dev \
             libwayland-dev wayland-protocols libxkbcommon-dev \
             libasound2-dev libdbus-1-dev libibus-1.0-dev
+          
+          rm -rf Artifacts
 
-      - name: macOS deps
+      - name: macOS setup
         if: startsWith(matrix.os, 'macos')
         shell: bash
         run: |
           brew update
           brew install cmake || true
+          
+          rm -rf Artifacts
 
       - name: Windows deps
         if: startsWith(matrix.os, 'windows')
@@ -53,6 +57,8 @@ jobs:
         run: |
           choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
           choco install -y ninja
+          
+          Remove-Item -Recurse -Force Artifacts
 
       - name: Restore .NET tools
         shell: bash
@@ -103,7 +109,7 @@ jobs:
         with:
           path: _all_artifacts
 
-      - name: Merge into repo Artifacts/
+      - name: Merge into repo Artifacts
         run: |
           rm -rf Artifacts
           mkdir -p Artifacts
