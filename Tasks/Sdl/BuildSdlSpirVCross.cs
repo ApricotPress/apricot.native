@@ -6,7 +6,7 @@ using Cake.Core;
 using Cake.Core.IO;
 using Cake.Frosting;
 
-namespace Apricot.Native.Build.Tasks;
+namespace Apricot.Native.Build.Tasks.Sdl;
 
 [TaskName("Build SpirV-cross")]
 public sealed class BuildSdlSpirVCross : FrostingTask<BuildContext>

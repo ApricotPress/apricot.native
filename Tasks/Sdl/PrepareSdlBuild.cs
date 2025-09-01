@@ -1,7 +1,7 @@
 using Cake.Common;
 using Cake.Frosting;
 
-namespace Apricot.Native.Build.Tasks;
+namespace Apricot.Native.Build.Tasks.Sdl;
 
 [TaskName("Prepare SDL")]
 public sealed class PrepareSdlBuild : FrostingTask<BuildContext>

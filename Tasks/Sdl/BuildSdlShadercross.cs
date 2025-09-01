@@ -8,7 +8,7 @@ using Cake.Core.IO;
 using Cake.Frosting;
 using Cake.Git;
 
-namespace Apricot.Native.Build.Tasks;
+namespace Apricot.Native.Build.Tasks.Sdl;
 
 [TaskName("Build SDL_shadercross")]
 [IsDependentOn(typeof(BuildSdl))]

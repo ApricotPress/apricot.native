@@ -1,5 +1,6 @@
 using Apricot.Native.Build;
 using Apricot.Native.Build.Tasks;
+using Apricot.Native.Build.Tasks.Sdl;
 using Cake.Frosting;
 
 return new CakeHost()

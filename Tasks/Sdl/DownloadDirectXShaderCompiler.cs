@@ -5,7 +5,7 @@ using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 
-namespace Apricot.Native.Build.Tasks;
+namespace Apricot.Native.Build.Tasks.Sdl;
 
 [TaskName("Download shadercross DirectXShaderCompiler binaries")]
 public sealed class DownloadDirectXShaderCompiler : FrostingTask<BuildContext>
