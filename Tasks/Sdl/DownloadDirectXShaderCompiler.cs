@@ -9,7 +9,7 @@ namespace Apricot.Native.Build.Tasks.Sdl;
 [TaskName("Download shadercross DirectXShaderCompiler binaries")]
 public sealed class DownloadDirectXShaderCompiler : FrostingTask<BuildContext>
 {
-    public override bool ShouldRun(BuildContext context) => context.UseVendoredShadercrossDeps;
+    public override bool ShouldRun(BuildContext context) => !context.UseVendoredShadercrossDeps;
 
     public override void Run(BuildContext context)
     {
