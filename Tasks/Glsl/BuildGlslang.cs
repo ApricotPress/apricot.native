@@ -27,10 +27,11 @@ public class BuildGlslang : FrostingTask<BuildContext>
             BinaryPath = buildPath
         });
 
-        context.AddArtifact(buildPath.CombineWithFilePath("glslang/libglslang.dylib"), "glslang");
-        context.AddArtifact(
-            buildPath.CombineWithFilePath("glslang/libglslang-default-resource-limits.dylib"),
-            "glslang"
-        );
+        var platform = context.Environment.Platform.Family;
+        var glslangLibName = Utils.PlatformLibName(platform, "glslang");
+        var glslangResourcesLibName = Utils.PlatformLibName(platform, "glslang-default-resource-limits");
+
+        context.AddArtifact(buildPath.CombineWithFilePath($"glslang/{glslangLibName}"), "glslang");
+        context.AddArtifact(buildPath.CombineWithFilePath($"glslang/{glslangResourcesLibName}"), "glslang");
     }
 }
