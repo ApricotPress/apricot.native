@@ -34,6 +34,7 @@ public class BuildGlslang : FrostingTask<BuildContext>
         var platform = context.Environment.Platform.Family;
         var glslangLibName = Utils.PlatformLibName(platform, "glslang");
         var glslangResourcesLibName = Utils.PlatformLibName(platform, "glslang-default-resource-limits");
+        var binaryPath = Utils.BinaryName(platform, "glslang");
 
         var librariesPath = platform == PlatformFamily.Windows
             ? "install/bin/"
@@ -41,5 +42,7 @@ public class BuildGlslang : FrostingTask<BuildContext>
 
         context.AddArtifact(buildPath.CombineWithFilePath($"{librariesPath}{glslangLibName}"), "glslang");
         context.AddArtifact(buildPath.CombineWithFilePath($"{librariesPath}{glslangResourcesLibName}"), "glslang");
+        context.AddArtifact(buildPath.CombineWithFilePath($"install/bin/{binaryPath}"), "glslang");
+
     }
 }
