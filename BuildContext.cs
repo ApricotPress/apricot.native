@@ -22,4 +22,7 @@ public class BuildContext(ICakeContext context) : FrostingContext(context)
 
     public void AddArtifact(FilePath path, DirectoryPath target) =>
         ProducedArtifacts.Add(new ArtifactInfo(path, target));
+    
+    public DirectoryPath GetBuildPath(string module) =>
+        new DirectoryPath($"Builds/{Platform}/{module}/").MakeAbsolute(context.Environment);
 }

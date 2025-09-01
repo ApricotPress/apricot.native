@@ -1,7 +1,6 @@
 using System;
 using Cake.Common;
 using Cake.Core;
-using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Frosting;
 
@@ -10,14 +9,10 @@ namespace Apricot.Native.Build.Tasks.Sdl;
 [TaskName("Download shadercross DirectXShaderCompiler binaries")]
 public sealed class DownloadDirectXShaderCompiler : FrostingTask<BuildContext>
 {
+    public override bool ShouldRun(BuildContext context) => context.UseVendoredShadercrossDeps;
+
     public override void Run(BuildContext context)
     {
-        if (context.UseVendoredShadercrossDeps)
-        {
-            context.Log.Information("Skip direct-x shader compiler download");
-            return;
-        }
-
         var cmakePath = context.Tools.Resolve(["cmake", "cmake.exe"]);
         var workingDir = new DirectoryPath("Sources/SDL_shadercross/");
 

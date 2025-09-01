@@ -15,7 +15,7 @@ public sealed class BuildSdl : FrostingTask<BuildContext>
     private const string SdlPath = "Sources/SDL";
 
     public static DirectoryPath GetBuildPath(BuildContext context) =>
-        new DirectoryPath($"Builds/{context.Platform}/SDL/").MakeAbsolute(context.Environment);
+        context.GetBuildPath("SDL");
 
     public override void Run(BuildContext context)
     {

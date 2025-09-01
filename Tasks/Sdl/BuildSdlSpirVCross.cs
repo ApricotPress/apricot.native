@@ -13,15 +13,13 @@ public sealed class BuildSdlSpirVCross : FrostingTask<BuildContext>
 {
     private const string SpirVCrossPath = "Sources/SDL_shadercross/external/SPIRV-Cross";
 
-    public static DirectoryPath GetBuildPath(BuildContext context) =>
-        new DirectoryPath($"Builds/{context.Platform}/spirv-cross-c-shared/").MakeAbsolute(context.Environment);
+    public static DirectoryPath GetBuildPath(BuildContext context) => context.GetBuildPath("spirv-cross-c-shared");
 
     public override void Run(BuildContext context)
     {
         var buildPath = GetBuildPath(context);
 
         context.EnsureDirectoryExists(buildPath);
-
 
         context.CMake(new CMakeSettings
         {
