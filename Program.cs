@@ -9,8 +9,8 @@ return new CakeHost()
     .Run(args);
 
 [TaskName("Default")]
+[IsDependentOn(typeof(BuildGlslang))]
 [IsDependentOn(typeof(BuildSdl))]
 [IsDependentOn(typeof(BuildSdlShadercross))]
-[IsDependentOn(typeof(BuildGlslang))]
 [IsDependentOn(typeof(CopyArtifacts))]
 public class DefaultTask : FrostingTask { }
