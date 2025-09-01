@@ -64,26 +64,12 @@ jobs:
         shell: bash
         run: dotnet tool restore
 
-      - name: Restore cached Builds
-        id: cache-builds-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: Builds
-          key: ${{ matrix.os }}-builds
-
       - name: Cake run
         run: |
           dotnet --info
           dotnet run
           
-      - name: Cache builds
-        id: cache-builds-save
-        uses: actions/cache/save@v4
-        with:
-          path: Builds
-          key: ${{ steps.cache-builds-restore.outputs.cache-primary-key }}
-
-      - name: Pack artifacts 
+      - name: Pack artifacts
         run: tar -czf artifacts-${{ matrix.os }}.tar.gz -C Artifacts .
 
       - name: Upload artifacts
