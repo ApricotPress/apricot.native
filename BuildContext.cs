@@ -10,6 +10,8 @@ public record struct ArtifactInfo(FilePath Path, DirectoryPath TargetPath);
 
 public class BuildContext(ICakeContext context) : FrostingContext(context)
 {
+    private readonly ICakeContext _context = context;
+
     public string Platform { get; set; } = context.Argument("Platform", context.Environment.Platform.Family.ToString());
 
     public string CmakeGenerator { get; set; } = context.Argument("CmakeGenerator", "Ninja");
@@ -22,7 +24,7 @@ public class BuildContext(ICakeContext context) : FrostingContext(context)
 
     public void AddArtifact(FilePath path, DirectoryPath target) =>
         ProducedArtifacts.Add(new ArtifactInfo(path, target));
-    
+
     public DirectoryPath GetBuildPath(string module) =>
-        new DirectoryPath($"Builds/{Platform}/{module}/").MakeAbsolute(context.Environment);
+        new DirectoryPath($"Builds/{Platform}/{module}/").MakeAbsolute(_context.Environment);
 }
