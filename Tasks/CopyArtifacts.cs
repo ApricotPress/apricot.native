@@ -28,7 +28,7 @@ public sealed class CopyArtifacts : FrostingTask<BuildContext>
 
         var resultPath = targetDirPath.CombineWithFilePath(artifactPath.GetFilename());
 
-        if (Utils.TryGetSymLink(artifactPath, out FilePath original))
+        if (Utils.TryGetSymLink(artifactPath, out var original))
         {
             var copied = CopyArtifact(context, original, targetDirPath);
 

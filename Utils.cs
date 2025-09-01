@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Cake.Core;
 using Cake.Core.IO;
@@ -15,7 +16,7 @@ public static class Utils
             PlatformFamily.Linux => $"lib{lib}.so",
             var p => throw new PlatformNotSupportedException($"Platform {p} is not supported")
         };
-    
+
     public static string BinaryName(PlatformFamily platformFamily, string binary) =>
         platformFamily switch
         {
@@ -24,7 +25,8 @@ public static class Utils
             var p => throw new PlatformNotSupportedException($"Platform {p} is not supported")
         };
 
-    public static bool TryGetSymLink(FilePath path, out FilePath target)
+
+    public static bool TryGetSymLink(FilePath path, [NotNullWhen(true)] out FilePath? target)
     {
         if (File.ResolveLinkTarget(path.ToString(), false) is { } link)
         {
