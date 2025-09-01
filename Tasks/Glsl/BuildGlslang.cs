@@ -1,4 +1,5 @@
 using Cake.CMake;
+using Cake.Core;
 using Cake.Frosting;
 
 namespace Apricot.Native.Build.Tasks.Glsl;
@@ -18,20 +19,27 @@ public class BuildGlslang : FrostingTask<BuildContext>
             Options =
             [
                 "-DCMAKE_BUILD_TYPE=Release",
-                "-DBUILD_SHARED_LIBS=1"
+                "-DBUILD_SHARED_LIBS=1",
+                $"-DCMAKE_INSTALL_PREFIX={buildPath.Combine("install")}"
             ]
         });
 
         context.CMakeBuild(new CMakeBuildSettings
         {
-            BinaryPath = buildPath
+            BinaryPath = buildPath,
+            Configuration = "Release",
+            Targets = ["install"]
         });
 
         var platform = context.Environment.Platform.Family;
         var glslangLibName = Utils.PlatformLibName(platform, "glslang");
         var glslangResourcesLibName = Utils.PlatformLibName(platform, "glslang-default-resource-limits");
 
-        context.AddArtifact(buildPath.CombineWithFilePath($"glslang/{glslangLibName}"), "glslang");
-        context.AddArtifact(buildPath.CombineWithFilePath($"glslang/{glslangResourcesLibName}"), "glslang");
+        var librariesPath = platform == PlatformFamily.Windows
+            ? "install/bin/"
+            : "install/lib/";
+
+        context.AddArtifact(buildPath.CombineWithFilePath($"{librariesPath}{glslangLibName}"), "glslang");
+        context.AddArtifact(buildPath.CombineWithFilePath($"{librariesPath}{glslangResourcesLibName}"), "glslang");
     }
 }
