@@ -5,6 +5,7 @@
         <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
         <AssemblyName>Apricot.Native.Build</AssemblyName>
         <RootNamespace>Apricot.Native.Build</RootNamespace>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Cake.CMake" Version="1.4.0"/>
