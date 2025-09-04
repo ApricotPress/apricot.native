@@ -33,7 +33,7 @@ public class BuildGlslang : FrostingTask<BuildContext>
         {
             BinaryPath = buildPath,
             Configuration = "Release",
-            Options = ["-j", "4"],
+            Options = context.IsRunningOnWindows() ? [] : ["-j", "4"],
             Targets = ["install"]
         });
 
