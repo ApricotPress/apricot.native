@@ -45,10 +45,7 @@ jobs:
       - name: macOS setup
         if: startsWith(matrix.os, 'macos')
         shell: bash
-        run: |
-          brew update
-          brew install cmake || true
-          
+        run: |          
           rm -rf Artifacts
 
       - name: Windows deps
