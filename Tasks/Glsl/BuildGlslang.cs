@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Cake.CMake;
+using Cake.Common;
 using Cake.Core;
 using Cake.Frosting;
 
@@ -18,7 +19,7 @@ public class BuildGlslang : FrostingTask<BuildContext>
         {
             OutputPath = buildPath,
             SourcePath = "Sources/glslang",
-            Generator = context.CmakeGenerator,
+            Generator = context.IsRunningOnWindows() ? null : context.CmakeGenerator,
             Options =
                 GetPlatformSpecificOptions(context.Environment.Platform.Family).Concat(
                 [
