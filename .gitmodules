@@ -4,6 +4,3 @@
 [submodule "Sources/SDL_shadercross"]
 	path = Sources/SDL_shadercross
 	url = https://github.com/libsdl-org/SDL_shadercross.git
-[submodule "Sources/glslang"]
-	path = Sources/glslang
-	url = https://github.com/KhronosGroup/glslang.git

@@ -1,6 +1,5 @@
 using Apricot.Native.Build;
 using Apricot.Native.Build.Tasks;
-using Apricot.Native.Build.Tasks.Glsl;
 using Apricot.Native.Build.Tasks.Sdl;
 using Cake.Frosting;
 
@@ -9,7 +8,6 @@ return new CakeHost()
     .Run(args);
 
 [TaskName("Default")]
-[IsDependentOn(typeof(BuildGlslang))]
 [IsDependentOn(typeof(BuildSdl))]
 [IsDependentOn(typeof(BuildSdlShadercross))]
 [IsDependentOn(typeof(CopyArtifacts))]
